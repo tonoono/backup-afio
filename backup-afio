@@ -1,4 +1,12 @@
 #!/bin/sh
+#
+# backup-afio version 0.93 - fixed some issues with the file not properly running
+# and made changes to support POSIX compliance copyright 2009 Antonio Arredondo, 
+# and distributed under the terms of the GNU GPL license, available at 
+# http://www.gnu.org/licenses/gpl.html
+#
+
+#
 # backup-afio version 0.92 - backup stuff in a robust way using afio
 # This software is copyright 2005 Daniel M. Webb, and distributed under the
 # terms of the GNU GPL license, available at http://www.gnu.org/licenses/gpl.html
@@ -10,12 +18,12 @@ LOG_FILE=$LOG_DIR/backup-afio.$DATE_STRING.log
 STDERR_LOG=$LOG_DIR/backup-afio.$DATE_STRING.stderr
 SPLIT_SUFFIX_LENGTH=3
 
-function die () {
+die () {
   echo "$THIS: Fatal error: $*"
   exit 1
 }
 
-function short_help() {
+short_help() {
     cat <<END_OF_SHORT_HELP
 $THIS - backup directories to files using afio
 
@@ -54,7 +62,7 @@ Options:
 END_OF_SHORT_HELP
 }
 
-function long_help() {
+long_help() {
     short_help
     cat <<END_OF_LONG_HELP
 
@@ -111,21 +119,25 @@ IGNORE_PATTERN=""
 SPLIT_SIZE=""
 FIND_PIPE=""
 
-while [ "${1:0:1}" = '-' ]; do
-    [ $1 = '-e' ] && {        COMPRESS=gpg;                             shift; continue; }
-    [ $1 = '-r' ] && { shift; GPG_RECIPIENT="$1";                       shift; continue; }
-    [ $1 = '-z' ] && {        COMPRESS=gzip;                            shift; continue; }
-    [ $1 = '-b' ] && {        COMPRESS=bzip2;                           shift; continue; }
-    [ $1 = '-k' ] && {        K_OPTION="-k";                            shift; continue; }
-    [ $1 = '-x' ] && {        CROSS_FILESYSTEM_BOUNDARIES="";           shift; continue; }
-    [ $1 = '-l' ] && { shift; FIND_PIPE="$1";                           shift; continue; }
-    [ $1 = '-s' ] && { shift; SPLIT_SIZE="$1";                          shift; continue; }
-    [ $1 = '-w' ] && { shift; INCLUDE_PATTERN_FILE="-w $1";             shift; continue; }
-    [ $1 = '-W' ] && { shift; IGNORE_PATTERN_FILE="-W $1";              shift; continue; }
-    [ $1 = '-y' ] && { shift; INCLUDE_PATTERN="$INCLUDE_PATTERN -y $1"; shift; continue; }
-    [ $1 = '-Y' ] && { shift; IGNORE_PATTERN="$IGNORE_PATTERN -Y $1";   shift; continue; }
-    die "unknown option: $1"
+while getopts er:zbkxl:s:w:W:y:Y: opt
+do
+  case $opt in
+    e) COMPRESS=gpg;;
+    r) GPG_RECIPIENT=$OPTARG;;
+    z) COMPRESS=gzip;;
+    b) COMPRESS=bzip2;;
+    k) K_OPTION="-k";;
+    x) CROSS_FILESYSTEM_BOUNDARIES="";;
+    l) FIND_PIPE=$OPTARG;;
+    s) SPLIT_SIZE=$OPTARG;;
+    w) INCLUDE_PATTERN_FILE="-w $OPTARG";;
+    W) IGNORE_PATTERN_FILE="-W $OPTARG";;
+    y) INCLUDE_PATTERN="$INCLUDE_PATTERN -y $OPTARG";;
+    Y) IGNORE_PATTERN="$IGNORE_PATTERN -Y $OPTARG";;
+  esac
 done
+
+shift `expr $OPTIND - 1`
 
 # Set filelist generator to default if not specified
 if [ -z "$FIND_PIPE" ]; then
